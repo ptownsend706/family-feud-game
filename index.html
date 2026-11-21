@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Family Feud • TV Board</title><link rel="stylesheet" href="style.css"></head><body><header><h1>★ FAMILY FEUD ★</h1><div class="small">Family Game Night</div></header><main class="wrap"><div class="bar"><button id="sound">🔊 Enable TV Sound</button><button id="theme">▶ Play Opening Music</button><span id="status" class="status">Connecting…</span></div><div class="scores"><div class="panel score"><span id="team0">Team 1</span><strong id="score0">0</strong></div><div class="panel score"><span id="team1">Team 2</span><strong id="score1">0</strong></div></div><section class="panel"><div id="round" class="small">ROUND 1</div><div id="question" class="question">Loading game…</div><div id="answers" class="answers"></div><div id="strikes" class="strikes"></div></section><div class="small">Host controls are private at host.html • Original practice answers, not survey data</div></main><audio id="openingAudio" src="family-feud-theme.mp3" preload="auto" loop></audio><script type="module">
+import {path,onValue} from './shared.js';
+let prev=null,enabled=false,ctx=null;
+const $=id=>document.getElementById(id);
+function tone(freq,duration,type='sine',volume=.08){if(!enabled)return;ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();ctx.resume();let o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.value=volume;o.connect(g);g.connect(ctx.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+duration);o.stop(ctx.currentTime+duration)}
+function cheer(){[440,554,659,880].forEach((f,i)=>setTimeout(()=>tone(f,.22),i*105))}
+function buzzer(){tone(130,.45,'sawtooth',.13)}
+// Plays the audio file supplied by the host, rather than a synthesized tune.
+const openingAudio=$('openingAudio');
+function stopTheme(){openingAudio.pause();openingAudio.currentTime=0;$('theme').textContent='▶ Play Opening Music'}
+async function playTheme(){
+ if(!openingAudio.paused){stopTheme();return}
+ enabled=true;$('sound').textContent='🔊 Sound On';
+ try{await openingAudio.play();$('theme').textContent='■ Stop Opening Music'}
+ catch(e){$('status').textContent='Music unavailable — check family-feud-theme.mp3 is uploaded';}
+}
+openingAudio.addEventListener('error',()=>{$('status').textContent='Theme audio file not found';});
+$('theme').onclick=playTheme;
+$('sound').onclick=()=>{enabled=!enabled;$('sound').textContent=enabled?'🔊 Sound On':'🔇 Enable TV Sound';if(!enabled)stopTheme();else cheer()};
+function el(tag,cls,txt){let e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
+function render(s){if(s.phase==='fast'||(prev&&s.round!==prev.round)||(!prev&&s.phase==='round'&&s.revealed?.length))stopTheme();$('status').textContent='Connected • TV display';[0,1].forEach(i=>{$('team'+i).textContent=s.teamNames[i];$('score'+i).textContent=s.scores[i]});let fast=s.phase==='fast';$('round').textContent=fast?'FAST MONEY — PLAYER '+(s.fastPlayer||1):'ROUND '+(s.round+1)+(s.round>=6?' • TRIPLE POINTS':s.round>=3?' • DOUBLE POINTS':'');$('strikes').textContent=fast?'':('❌'.repeat(s.strikes||0));let list=fast?s.fastQuestions:[s.currentRound];$('answers').replaceChildren();if(fast){$('question').textContent='FAST MONEY • Target: 200 points';$('answers').style.display='block';list.forEach((q,i)=>{let r=el('div','fastrow');let shown=(s.fastRevealed||[]).includes(i);r.append(el('strong','',`${i+1}. ${q[0]}`),el('div','',shown?`${q[1][0][0]} — ${q[1][0][1]} points`:'Answer hidden'));$('answers').append(r)});$('strikes').textContent='FAST MONEY TOTAL: '+(s.fastPoints||0)}else{$('answers').style.display='grid';let q=list[0];$('question').textContent=q[0];q[1].forEach(([answer,points],i)=>{let shown=(s.revealed||[]).includes(i),tile=el('div','tile'+(shown?'':' hidden'));tile.append(el('span','num',String(i+1)));if(shown){tile.append(el('span','',answer),el('span','pts',String(points)))}$('answers').append(tile)})}
+if(prev){if((s.strikes||0)>(prev.strikes||0)&&!fast)buzzer();if(!fast&&(s.revealed||[]).length>(prev.revealed||[]).length)cheer();if(fast&&(s.fastRevealed||[]).length>(prev.fastRevealed||[]).length)cheer()}prev=s}
+onValue(path,snap=>{let s=snap.val();if(s)render(s);else $('status').textContent='Waiting for host to initialize game…'},err=>$('status').textContent='Connection error: '+err.message);
+</script></body></html>
