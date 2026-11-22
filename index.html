@@ -5,7 +5,13 @@ const $=id=>document.getElementById(id);
 function tone(freq,duration,type='sine',volume=.08){if(!enabled)return;ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();ctx.resume();let o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.value=volume;o.connect(g);g.connect(ctx.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+duration);o.stop(ctx.currentTime+duration)}
 function playGoodAnswer(){const audio=$('goodAnswerAudio');if(!enabled)return;audio.pause();audio.currentTime=0;audio.play().catch(()=>{});}
 function cheer(){[440,554,659,880].forEach((f,i)=>setTimeout(()=>tone(f,.22),i*105))}
-function buzzer(){tone(130,.45,'sawtooth',.13)}
+function buzzer(){
+  if(!enabled)return;
+  const audio=$('wrongAnswerAudio');
+  audio.pause();
+  audio.currentTime=0;
+  audio.play().catch(e=>console.error('Buzzer error:',e));
+}
 // Plays the audio file supplied by the host, rather than a synthesized tune.
 const openingAudio=$('openingAudio');
 function stopTheme(){openingAudio.pause();openingAudio.currentTime=0;$('theme').textContent='▶ Play Opening Music'}
