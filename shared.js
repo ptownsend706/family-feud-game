@@ -9,7 +9,12 @@ const app=initializeApp(firebaseConfig);
 export const db=getDatabase(app);
 export const auth=getAuth(app);
 
-export {ref,onValue,set,signInWithEmailAndPassword,onAuthStateChanged,signOut,rounds,fastMoney};
+export {
+  ref,onValue,set,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,signOut,
+  rounds,fastMoney
+};
 
 export const path=ref(db,`games/${room}/public`);
 export const privatePath=ref(db,`games/${room}/private`);
@@ -28,6 +33,7 @@ export function initial(){
     fastPlayer:1,
     customRounds:rounds,
     customFast:fastMoney,
+    musicCommand:{action:'stop',id:0},
     updated:Date.now()
   };
 }
@@ -41,7 +47,9 @@ export function getFast(s){
 }
 
 export function publicState(s){
-  const q=getRound(s),f=getFast(s);
+  const q=getRound(s);
+  const f=getFast(s);
+
   return {
     round:s.round,
     teamNames:s.teamNames,
@@ -53,6 +61,7 @@ export function publicState(s){
     fastRevealed:s.fastRevealed||[],
     fastPoints:s.fastPoints||0,
     fastPlayer:s.fastPlayer||1,
+    musicCommand:s.musicCommand||{action:'stop',id:0},
     currentRound:[
       q[0],
       q[1].map(([a,p],i)=>
@@ -61,14 +70,21 @@ export function publicState(s){
     ],
     fastQuestions:f.map(([prompt,answers],i)=>[
       prompt,
-      (s.fastRevealed||[]).includes(i)?[answers[0]]:[['',0]]
+      (s.fastRevealed||[]).includes(i)
+        ?[answers[0]]
+        :[['',0]]
     ]),
     updated:s.updated
   };
 }
 
 export async function update(s,changes){
-  const next={...s,...changes,updated:Date.now()};
+  const next={
+    ...s,
+    ...changes,
+    updated:Date.now()
+  };
+
   await set(privatePath,next);
   await set(path,publicState(next));
 }
