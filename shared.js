@@ -6,14 +6,19 @@ import {firebaseConfig,room} from './config.js';
 import {rounds,fastMoney} from './questions.js';
 
 const app=initializeApp(firebaseConfig);
+
 export const db=getDatabase(app);
 export const auth=getAuth(app);
 
 export {
-  ref,onValue,set,
+  ref,
+  onValue,
+  set,
   signInWithEmailAndPassword,
-  onAuthStateChanged,signOut,
-  rounds,fastMoney
+  onAuthStateChanged,
+  signOut,
+  rounds,
+  fastMoney
 };
 
 export const path=ref(db,`games/${room}/public`);
@@ -33,7 +38,19 @@ export function initial(){
     fastPlayer:1,
     customRounds:rounds,
     customFast:fastMoney,
-    musicCommand:{action:'stop',id:0},
+
+    // iPhone opening music controls
+    musicCommand:{
+      action:'stop',
+      id:0
+    },
+
+    // Fast Money countdown timer
+    fastTimer:{
+      status:'ready',
+      endsAt:0
+    },
+
     updated:Date.now()
   };
 }
@@ -61,19 +78,37 @@ export function publicState(s){
     fastRevealed:s.fastRevealed||[],
     fastPoints:s.fastPoints||0,
     fastPlayer:s.fastPlayer||1,
-    musicCommand:s.musicCommand||{action:'stop',id:0},
+
+    // Remote music commands
+    musicCommand:s.musicCommand||{
+      action:'stop',
+      id:0
+    },
+
+    // Fast Money timer state
+    fastTimer:s.fastTimer||{
+      status:'ready',
+      endsAt:0
+    },
+
+    // Regular round answers
     currentRound:[
       q[0],
       q[1].map(([a,p],i)=>
-        (s.revealed||[]).includes(i)?[a,p]:['',0]
+        (s.revealed||[]).includes(i)
+          ?[a,p]
+          :['',0]
       )
     ],
+
+    // Fast Money answers
     fastQuestions:f.map(([prompt,answers],i)=>[
       prompt,
       (s.fastRevealed||[]).includes(i)
         ?[answers[0]]
         :[['',0]]
     ]),
+
     updated:s.updated
   };
 }
