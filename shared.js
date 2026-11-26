@@ -39,18 +39,18 @@ export function initial(){
     customRounds:rounds,
     customFast:fastMoney,
 
-    // iPhone opening music controls
     musicCommand:{
       action:'stop',
       id:0
     },
 
-    // Fast Money countdown timer
     fastTimer:{
       status:'ready',
       endsAt:0
     },
 
+    fastSelections:[[],[]],
+    reviewCount:0,
     updated:Date.now()
   };
 }
@@ -64,6 +64,7 @@ export function getFast(s){
 }
 
 export function publicState(s){
+
   const q=getRound(s);
   const f=getFast(s);
 
@@ -79,19 +80,6 @@ export function publicState(s){
     fastPoints:s.fastPoints||0,
     fastPlayer:s.fastPlayer||1,
 
-    // Remote music commands
-    musicCommand:s.musicCommand||{
-      action:'stop',
-      id:0
-    },
-
-    // Fast Money timer state
-    fastTimer:s.fastTimer||{
-      status:'ready',
-      endsAt:0
-    },
-
-    // Regular round answers
     currentRound:[
       q[0],
       q[1].map(([a,p],i)=>
@@ -101,19 +89,69 @@ export function publicState(s){
       )
     ],
 
-    // Fast Money answers
-    fastQuestions:f.map(([prompt,answers],i)=>[
-      prompt,
-      (s.fastRevealed||[]).includes(i)
-        ?[answers[0]]
-        :[['',0]]
-    ]),
+    fastQuestions:f.map(([prompt,answers],i)=>{
+
+      const visible=
+        s.fastTimer?.status==='review' &&
+        i<(s.reviewCount||0);
+
+      const picks=s.fastSelections||[[],[]];
+
+      const playerAnswer=p=>{
+        const idx=picks[p]?.[i];
+
+        return Number.isInteger(idx) &&
+          idx>=0 &&
+          answers[idx]
+            ?answers[idx]
+            :['No answer',0];
+      };
+
+      return visible
+        ?[
+            prompt,
+            answers[0],
+            playerAnswer(0),
+            playerAnswer(1)
+          ]
+        :[
+            '',
+            ['',0],
+            ['',0],
+            ['',0]
+          ];
+    }),
+
+    reviewCount:s.reviewCount||0,
+
+    fastScores:
+      s.fastTimer?.status==='review' &&
+      (s.reviewCount||0)>=f.length
+        ?(s.fastSelections||[[],[]]).map(
+            p=>f.reduce(
+              (sum,q,i)=>
+                sum+(q[1][p?.[i]]?.[1]||0),
+              0
+            )
+          )
+        :[0,0],
+
+    musicCommand:s.musicCommand||{
+      action:'stop',
+      id:0
+    },
+
+    fastTimer:s.fastTimer||{
+      status:'ready',
+      endsAt:0
+    },
 
     updated:s.updated
   };
 }
 
 export async function update(s,changes){
+
   const next={
     ...s,
     ...changes,
